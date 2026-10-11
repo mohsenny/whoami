@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { AU_KM, LIGHT_KM_S } from '../sky/bodies'
-import { covered, crossesDisc, distanceLabel, lightLabel, luxLabel, sizeLabel, spread } from './instrument'
+import { covered, crossesDisc, distanceLabel, lightLabel, luxLabel, openingOf, sizeLabel, spread } from './instrument'
+import { posesAt } from '../sky/ephemeris'
 import { TAPE_S, Tape } from './tape'
 import { YEAR_MS } from '../sky/deep'
 import {
@@ -301,5 +302,25 @@ describe('one disc over another', () => {
     // Two equal discs a radius apart overlap by 2 pi / 3 - sqrt(3) / 2 of pi.
     expect(covered(1, 1, 1)).toBeCloseTo((2 * Math.PI) / 3 / Math.PI - Math.sqrt(3) / 2 / Math.PI, 6)
     expect(covered(1, 1, 1.999)).toBeLessThan(0.001)
+  })
+})
+
+describe('the view it opens on', () => {
+  it('looks at Jupiter from the nearest big moon that sees it 80% lit, or from over its globe when none does', () => {
+    const big = ['io', 'europa', 'ganymede', 'callisto'] as const
+    const seen = new Set<string>()
+    for (let h = 0; h < 24 * 365; h += 5) {
+      const poses = posesAt(Date.UTC(2026, 9, 11) + h * 3_600_000)
+      const at = poses.jupiter.at
+      const sun = poses.sun.at.map((v, i) => v - at[i])
+      const lit = (id: (typeof big)[number]): number => {
+        const to = poses[id].at.map((v, i) => v - at[i])
+        return (1 + to.reduce((s, v, i) => s + v * sun[i], 0) / Math.hypot(...to) / Math.hypot(...sun)) / 2
+      }
+      const seat = openingOf(poses)
+      seen.add(seat)
+      expect(seat).toBe(big.find((id) => lit(id) >= 0.8) ?? 'jupiter')
+    }
+    expect([...seen].sort()).toEqual(['callisto', 'europa', 'ganymede', 'io', 'jupiter'])
   })
 })

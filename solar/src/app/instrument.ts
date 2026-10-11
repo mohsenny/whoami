@@ -290,6 +290,25 @@ export function sizeLabel(rad: number): string {
   return `${sec >= 0.1 ? sec.toFixed(1) : sec.toPrecision(2)}″`
 }
 
+/** Jupiter's big moons, nearest first, any of which it may open on. */
+const OPENERS: BodyId[] = ['io', 'europa', 'ganymede', 'callisto']
+
+/** How much of Jupiter a moon must see lit to open on: less and the moon's own ground is half in night. */
+const OPEN_LIT = 0.8
+
+/**
+ * Where Solar opens, looking at Jupiter: from the nearest of its big moons
+ * that sees it at least OPEN_LIT lit, where it is biggest. When none does,
+ * about a quarter of the time and at most a day or so, over Jupiter's own
+ * globe instead, on its day side.
+ */
+export function openingOf(poses: Poses): BodyId {
+  const at = poses.jupiter.at
+  const sun = norm(sub(poses.sun.at, at))
+  const lit = (id: BodyId): number => (1 + dot(norm(sub(poses[id].at, at)), sun)) / 2
+  return OPENERS.find((id) => lit(id) >= OPEN_LIT) ?? 'jupiter'
+}
+
 export class Instrument {
   private canvas: HTMLCanvasElement
   private labels: HTMLElement
@@ -312,8 +331,8 @@ export class Instrument {
   private wall = Date.now()
   private dial = 0
   private playing = true
-  private seat: BodyId = 'earth'
-  private look: BodyId = 'moon'
+  private seat: BodyId = 'jupiter'
+  private look: BodyId = 'jupiter'
   private z = 0
   /** How far round the seat the eye has been swung from the target, along and up the sky, radians. */
   private swing = 0
@@ -388,6 +407,7 @@ export class Instrument {
     this.poses = posesAt(this.ms)
     this.reckon()
     this.tape.jump(this.ms)
+    this.seat = openingOf(this.poses)
     this.z = this.zoomFor(this.seat, this.look)
     this.eye = this.restingEye()
     for (const b of BODIES) {
@@ -406,6 +426,7 @@ export class Instrument {
     this.observer = new ResizeObserver(() => this.resize())
     this.observer.observe(canvas)
     this.resize()
+    if (this.seat === this.look) this.enterGlobe()
     this.loadMaps()
     ;(window as unknown as { __travel?: unknown }).__travel = { // travel-probe
       eye: () => this.eye, // travel-probe
@@ -432,8 +453,8 @@ export class Instrument {
     for (const b of BODIES) this.renderer.paint(b.id, b.color)
     for (const [key, hex] of Object.entries(CROWD_COLOURS)) this.renderer.paint(key, hex)
     for (const b of KEYED) this.loadMap(b.id)
-    // And the Moon, the first thing looked at.
-    this.loadMap('moon')
+    // And the moon it opens on.
+    this.loadMap(this.seat)
     void this.renderer.load('night', EARTH_NIGHT).catch(() => undefined)
     void this.renderer.load('clouds', EARTH_CLOUDS, true).catch(() => undefined)
     void this.renderer.load('rings', SATURN_RING).catch(() => undefined)
