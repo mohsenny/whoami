@@ -297,16 +297,43 @@ const OPENERS: BodyId[] = ['io', 'europa', 'ganymede', 'callisto']
 const OPEN_LIT = 0.8
 
 /**
- * Where Solar opens, looking at Jupiter: from the nearest of its big moons
- * that sees it at least OPEN_LIT lit, where it is biggest. When none does,
- * about a quarter of the time and at most a day or so, over Jupiter's own
- * globe instead, on its day side.
+ * How many of Jupiter's other big moons the whole lens shows beside it from
+ * `seat`, on a frame `aspect` wide: within its width, and not behind Jupiter.
  */
-export function openingOf(poses: Poses): BodyId {
+export function moonsBeside(poses: Poses, seat: BodyId, aspect: number): number {
+  const from = poses[seat].at
+  const to = sub(poses.jupiter.at, from)
+  const disc = Math.asin(Math.min(1, (bodyById('jupiter') as Body).radius / len(to)))
+  // On the plane, a point a off the middle is tan(a / 2) out, the frame's edge tan(fov / 4) times its width.
+  const reach = 2 * Math.atan(0.9 * Math.tan(FOV / 4) * aspect)
+  let n = 0
+  for (const id of OPENERS) {
+    if (id === seat) continue
+    const m = sub(poses[id].at, from)
+    const a = Math.acos(Math.max(-1, Math.min(1, dot(norm(to), norm(m)))))
+    if (a < reach && !(len(m) > len(to) && a < disc)) n++
+  }
+  return n
+}
+
+/**
+ * Where Solar opens, looking at Jupiter through the whole lens: from one of
+ * its big moons that sees it at least OPEN_LIT lit, the one with most of the
+ * others beside it, two being plenty, and of those the nearest, where Jupiter
+ * is biggest. When none sees it lit, about a quarter of the time and at most
+ * a day or so, over Jupiter's own globe instead, on its day side.
+ */
+export function openingOf(poses: Poses, aspect: number): BodyId {
   const at = poses.jupiter.at
   const sun = norm(sub(poses.sun.at, at))
   const lit = (id: BodyId): number => (1 + dot(norm(sub(poses[id].at, at)), sun)) / 2
-  return OPENERS.find((id) => lit(id) >= OPEN_LIT) ?? 'jupiter'
+  let seat: BodyId = 'jupiter'
+  let most = -1
+  for (const id of OPENERS) {
+    const beside = Math.min(2, moonsBeside(poses, id, aspect))
+    if (lit(id) >= OPEN_LIT && beside > most) [seat, most] = [id, beside]
+  }
+  return seat
 }
 
 export class Instrument {
@@ -407,8 +434,9 @@ export class Instrument {
     this.poses = posesAt(this.ms)
     this.reckon()
     this.tape.jump(this.ms)
-    this.seat = openingOf(this.poses)
-    this.z = this.zoomFor(this.seat, this.look)
+    this.resize()
+    this.seat = openingOf(this.poses, this.width / this.height)
+    if (this.seat === this.look) this.openGlobe()
     this.eye = this.restingEye()
     for (const b of BODIES) {
       const el = document.createElement('span')
@@ -426,7 +454,6 @@ export class Instrument {
     this.observer = new ResizeObserver(() => this.resize())
     this.observer.observe(canvas)
     this.resize()
-    if (this.seat === this.look) this.enterGlobe()
     this.loadMaps()
     ;(window as unknown as { __travel?: unknown }).__travel = { // travel-probe
       eye: () => this.eye, // travel-probe
@@ -845,6 +872,35 @@ export class Instrument {
   /** Back to the globe of the body you are on. */
   lookHome(): void {
     this.lookAt(this.seat)
+  }
+
+  /**
+   * Over Jupiter's globe on its day side, backed away until two of its big
+   * moons are in the frame, or as many as there can be before Jupiter is
+   * less than an eighth of the frame across.
+   */
+  private openGlobe(): void {
+    this.enterGlobe()
+    const r = this.radius(this.seat)
+    const narrow = FOV * Math.min(1, this.width / this.height)
+    const far = Math.log(1 / Math.sin(narrow / 16) / GLOBE)
+    let best = { zg: this.zg, n: 0 }
+    for (let zg = this.zg; zg <= far && best.n < 2; zg += 0.05) {
+      const eye = globeEye(this.at(this.seat), r, zg, this.yaw, this.pitch)
+      const fr = frameOf(eye, this.width / this.height)
+      const to = sub(this.at(this.seat), eye.at)
+      const disc = Math.asin(Math.min(1, r / len(to)))
+      let n = 0
+      for (const id of OPENERS) {
+        const m = sub(this.at(id), eye.at)
+        const p = project(fr, norm(m), this.width, this.height)
+        const behind = len(m) > len(to) && Math.acos(Math.min(1, dot(norm(m), norm(to)))) < disc
+        const inside = p && p[0] > 0.06 * this.width && p[0] < 0.94 * this.width && p[1] > 0.06 * this.height && p[1] < 0.94 * this.height
+        if (inside && !behind) n++
+      }
+      if (n > best.n) best = { zg, n }
+    }
+    this.zg = best.zg
   }
 
   private enterGlobe(): void {

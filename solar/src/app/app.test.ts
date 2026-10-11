@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AU_KM, LIGHT_KM_S } from '../sky/bodies'
-import { covered, crossesDisc, distanceLabel, lightLabel, luxLabel, openingOf, sizeLabel, spread } from './instrument'
+import { covered, crossesDisc, distanceLabel, lightLabel, luxLabel, moonsBeside, openingOf, sizeLabel, spread } from './instrument'
 import { posesAt } from '../sky/ephemeris'
 import { TAPE_S, Tape } from './tape'
 import { YEAR_MS } from '../sky/deep'
@@ -306,9 +306,10 @@ describe('one disc over another', () => {
 })
 
 describe('the view it opens on', () => {
-  it('looks at Jupiter from the nearest big moon that sees it 80% lit, or from over its globe when none does', () => {
+  it('looks at Jupiter from a big moon that sees it 80% lit and shows two others beside it if any does, nearest first, or from over its globe when none sees it lit', () => {
     const big = ['io', 'europa', 'ganymede', 'callisto'] as const
-    const seen = new Set<string>()
+    const seen = new Map<string, number>()
+    let beside = 0
     for (let h = 0; h < 24 * 365; h += 5) {
       const poses = posesAt(Date.UTC(2026, 9, 11) + h * 3_600_000)
       const at = poses.jupiter.at
@@ -317,10 +318,21 @@ describe('the view it opens on', () => {
         const to = poses[id].at.map((v, i) => v - at[i])
         return (1 + to.reduce((s, v, i) => s + v * sun[i], 0) / Math.hypot(...to) / Math.hypot(...sun)) / 2
       }
-      const seat = openingOf(poses)
-      seen.add(seat)
-      expect(seat).toBe(big.find((id) => lit(id) >= 0.8) ?? 'jupiter')
+      const lits = big.filter((id) => lit(id) >= 0.8)
+      const shown = (id: string): number => Math.min(2, moonsBeside(poses, id as (typeof big)[number], 1.3))
+      const seat = openingOf(poses, 1.3)
+      seen.set(seat, (seen.get(seat) ?? 0) + 1)
+      if (lits.length === 0) {
+        expect(seat).toBe('jupiter')
+        continue
+      }
+      const most = Math.max(...lits.map(shown))
+      expect(seat).toBe(lits.find((id) => shown(id) === most))
+      if (shown(seat) > 0) beside++
     }
-    expect([...seen].sort()).toEqual(['callisto', 'europa', 'ganymede', 'io', 'jupiter'])
+    expect([...seen.keys()].sort()).toEqual(['callisto', 'europa', 'ganymede', 'io', 'jupiter'])
+    const moons = [...seen].filter(([k]) => k !== 'jupiter').reduce((s, [, v]) => s + v, 0)
+    // From a moon, others are beside Jupiter more than four times in five.
+    expect(beside / moons).toBeGreaterThan(0.8)
   })
 })
