@@ -6,8 +6,8 @@ const ROWS: ReadonlyArray<Row> = [
   { key: 'drag', gesture: 'Drag the sky', effect: 'look around' },
   { key: 'ground', gesture: 'Drag the ground', effect: 'go round it' },
   { key: 'scroll', gesture: 'Scroll', effect: 'zoom' },
-  { key: 'click', gesture: 'Click', effect: 'look at it' },
-  { key: 'double', gesture: 'Double-click', effect: 'go there' },
+  { key: 'click', gesture: 'Click', effect: 'go there' },
+  { key: 'double', gesture: 'Double-click', effect: 'look at it' },
 ]
 
 /** The things that cannot be found by moving the mouse. */

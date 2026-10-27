@@ -11,7 +11,7 @@
 
 The Sun, the eight planets and Pluto, the Moon, both moons of Mars, nine of Jupiter, nineteen of Saturn, six of Uranus, three of Neptune and all five of Pluto where they are right now, at their true sizes and distances, with the giants' 414 other moons unnamed among them. The planets, the Moon, the giants' round moons, Pluto and Charon wear a photographed map of their surface but Titan, which is all haze; the small moons wear their colour on their real, lumpy shapes, or made-up ones where they were only ever seen as points. It opens on the Earth looking at the Moon, at real speed.
 
-You are always on a body, the seat. Looking at another body, you sit just above the seat with its horizon low in the frame and the other body in the middle, the way that planet's own sky would show it. Look at the seat itself and you circle it as a globe. Double-click anything to become it: the eye turns to it and goes straight there, the body growing in the middle of the frame, and comes to rest over its globe on the side you came from, or swings round to its day side. It opens looking at Jupiter through the whole lens from one of its four big moons that sees it at least 80% lit, so its day side faces you and the moon's ground is lit under it: the one with the most of the others beside Jupiter, two being plenty, and of those the nearest, where Jupiter is biggest. When none sees it lit, about a quarter of the time and never much more than a day, it opens over Jupiter's globe on its day side, backed away until two of the big moons are in the frame or Jupiter is an eighth of it across.
+You are always on a body, the seat. Looking at another body, you sit just above the seat with its horizon low in the frame and the other body in the middle, the way that planet's own sky would show it. Look at the seat itself and you circle it as a globe. Click anything to become it: the eye turns to it at once and goes straight there, the body growing in the middle of the frame, and comes to rest over its globe on the side you came from, or swings round to its day side. It opens looking at Jupiter through the whole lens from one of its four big moons that sees it at least 80% lit, so its day side faces you and the moon's ground is lit under it: the one with the most of the others beside Jupiter, two being plenty, and of those the nearest, where Jupiter is biggest. When none sees it lit, about a quarter of the time and never much more than a day, it opens over Jupiter's globe on its day side, backed away until two of the big moons are in the frame or Jupiter is an eighth of it across.
 
 Speed the clock up and the sky starts to move: the Moon's phases, the Earth turning its cities into the night, Venus swinging from evening to morning, Mars looping backward, Jupiter's moons dropping their shadows on it. Every frame is the real geometry for that moment. Type a year and the clock goes anywhere in the Sun's whole life: it swells red, takes the inner planets and shrinks to a white dwarf.
 
@@ -50,11 +50,11 @@ Speed the clock up and the sky starts to move: the Moon's phases, the Earth turn
 
 | You want to | Do this |
 | --- | --- |
-| Look at a body | Click it or its name |
-| Become a body | Double-click it, its key (<kbd>0</kbd> the Sun, then <kbd>1</kbd> Mercury to <kbd>9</kbd> Pluto), or the seat chip, where the round moons sit under their planet. You travel there and arrive over its globe, the whole of it in the frame, on the side you came from unless that is night; picking it again brings that back |
-| Look around | Drag the sky. It turns round you; click the target to bring it back to the middle |
+| Look at a body | Double-click it or its name, or scroll in over it. A single click turns to it too, and goes there once no second click has come within half a second |
+| Become a body | Click it, its key (<kbd>0</kbd> the Sun, then <kbd>1</kbd> Mercury to <kbd>9</kbd> Pluto), or the seat chip, where the round moons sit under their planet. You travel there and arrive over its globe, the whole of it in the frame, on the side you came from unless that is night; picking it again brings that back |
+| Look around | Drag the sky. It turns round you; double-click the target, or scroll in over it, to bring it back to the middle |
 | Go round the body you are on | Drag its ground. Across goes round it, the target staying put; up and down moves the horizon |
-| Zoom | Scroll. A globe zooms toward the pointer; scrolling in over the ground you sit on turns to that side of its globe, and a new scroll past the narrowest lens goes into the body under the pointer, or the one you look at |
+| Zoom | Scroll. A new scroll in over another body turns to it first and holds the rest of that scroll; then the lens narrows on it. A globe zooms toward the pointer; scrolling in over the ground you sit on turns to that side of its globe, and a new scroll past the narrowest lens goes into the body under the pointer, or the one you look at |
 | See the body you are on | <kbd>Esc</kbd>, or click it. A globe, dragged round |
 | Stop time | <kbd>Space</kbd> |
 | Faster, slower, backward | Turn the knob in the dock, or <kbd>.</kbd> and <kbd>,</kbd>. Double-click it for real time |
@@ -74,7 +74,7 @@ Speed the clock up and the sky starts to move: the Moon's phases, the Earth turn
 
 **Readout, top right.** The target and where it is seen from, then `DISTANCE`, `LIGHT` (how long its light takes to arrive), `SIZE` (across, in the sky) and `LIT` (how much of the disc you see is in daylight). On a globe: `ABOVE`, `SUN`, `SUNLIGHT`, `NOON` (the light there at noon, in lux) and `RADIUS`.
 
-**Legend, bottom left.** `DRAG THE SKY look around`, `DRAG THE GROUND go round it`, `SCROLL zoom`, `CLICK look at it`, `DOUBLE-CLICK go there`. Hidden under 1,197 px, where the dock would come within 15 px of it.
+**Legend, bottom left.** `DRAG THE SKY look around`, `DRAG THE GROUND go round it`, `SCROLL zoom`, `CLICK go there`, `DOUBLE-CLICK look at it`. Hidden under 1,197 px, where the dock would come within 15 px of it.
 
 **Idle.** As in the other two: three seconds without the mouse, a touch or a key, or the window left for another, and every word and control goes, playing or paused. Here the names in the sky go with them, and the paths fade out with the chrome and back in as quickly as it returns. An open drawer, a press still down (the knob held still), the mouse resting on the chrome, or focus tabbed into it holds them. A touch on an idle page only brings them back: the tap that wakes it presses nothing.
 

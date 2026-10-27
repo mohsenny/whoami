@@ -138,7 +138,11 @@ const SNAP_MS = 125
 const CLICK_PX = 5
 /** How near a dot a click still counts as on it. */
 const PICK_PX = 14
-/** A second click this soon after the first, ms, near where it was, takes the body the first one picked: by then the view is already turning to it. */
+/**
+ * A second click this soon after the first, ms, near where it was, makes it a
+ * double-click on the body the first one picked: by then the view is already
+ * turning to it. A single click goes there once this has passed.
+ */
 const DOUBLE_MS = 500
 /** The nearest a flight between bodies comes to any of them or their planets, radii: under the nearest a globe is seen from. */
 const CLEAR = 1.05
@@ -412,6 +416,8 @@ export class Instrument {
   private dived: [number, number] | null = null
   /** The body the last click picked, where and when. */
   private clicked: { id: BodyId; x: number; y: number; at: number } | null = null
+  /** The trip a single click sets off once no second click has come, until then a timer. */
+  private going = 0
   /** When the last scroll came, ms, and how far a new one has gone past the narrowest lens; null when none has. */
   private wheelAt = -Infinity
   private push: number | null = null
@@ -794,8 +800,8 @@ export class Instrument {
       this.fly(900)
       this.enterGlobe()
     } else {
-      // The lens waits until the turn is well under way, so a second click
-      // that makes this a trip there finds it as it was.
+      // The lens waits until the turn is well under way, so a click that
+      // goes on to be a trip there finds it as it was.
       this.fly(900, this.seat, [500, 1250])
       this.z = this.zoomFor(this.seat, id)
       this.settle()
@@ -809,6 +815,7 @@ export class Instrument {
    * frame. Picking the body you are on brings its globe back to that view.
    */
   become(id: BodyId): void {
+    this.stay()
     if (this.gone.has(id)) return this.touch(`The Sun has taken ${(bodyById(id) as Body).name}`)
     if (id === this.seat) {
       // Already on the way there.
@@ -1076,6 +1083,7 @@ export class Instrument {
     const dx = e.clientX - d.x
     const dy = e.clientY - d.y
     if (!d.moved && Math.hypot(dx, dy) < CLICK_PX) return
+    if (!d.moved) this.stay()
     d.moved = true
     d.x = e.clientX
     d.y = e.clientY
@@ -1115,21 +1123,42 @@ export class Instrument {
     if (!d || d.id !== e.pointerId) return
     this.drag = null
     this.canvas.classList.remove('is-dragging')
-    if (!d.moved) {
-      const c = this.clicked
-      const again = c && e.timeStamp - c.at < DOUBLE_MS && Math.hypot(e.clientX - c.x, e.clientY - c.y) < PICK_PX
-      const hit = again ? c.id : this.pick(e.clientX, e.clientY)
-      if (!hit) return
-      if (!again) this.clicked = { id: hit, x: e.clientX, y: e.clientY, at: e.timeStamp }
-      this.lookAt(hit)
+    if (d.moved) return
+    // A click turns to the body at once and goes there if no second click
+    // follows; a double-click only looks at it. The body you are on is only
+    // looked at, and the globe you are circling stays as it is.
+    const c = this.clicked
+    const again = c && e.timeStamp - c.at < DOUBLE_MS && Math.hypot(e.clientX - c.x, e.clientY - c.y) < PICK_PX
+    this.stay()
+    if (again) {
+      this.clicked = null
+      return
     }
+    const hit = this.pick(e.clientX, e.clientY)
+    if (!hit || (hit === this.seat && this.look === this.seat)) return
+    this.clicked = { id: hit, x: e.clientX, y: e.clientY, at: e.timeStamp }
+    this.lookAt(hit)
+    if (hit !== this.seat) this.going = window.setTimeout(() => this.become(hit), DOUBLE_MS)
   }
 
-  private onDouble = (e: MouseEvent): void => {
-    const c = this.clicked
-    const hit = c && e.timeStamp - c.at < DOUBLE_MS ? c.id : this.pick(e.clientX, e.clientY)
-    // On the globe you are circling, a double-click on it keeps the view you have.
-    if (hit && !(hit === this.seat && this.look === this.seat)) this.become(hit)
+  /** Calls off the trip a click has set off and not yet begun. */
+  private stay(): void {
+    window.clearTimeout(this.going)
+    this.going = 0
+  }
+
+  /**
+   * What a new scroll in turns to first, as a click does: another body under
+   * the pointer, or the one looked at if it has been turned away from. Not
+   * while travelling, and not at the narrowest lens, where scrolling on goes
+   * into what is pointed at.
+   */
+  private turnTarget(cx: number, cy: number, rect: DOMRect): BodyId | null {
+    if (this.flight?.travel || (this.seat !== this.look && this.z <= Z_MIN)) return null
+    const hit = this.pick(cx, cy, rect)
+    if (!hit || hit === this.seat) return null
+    if (hit === this.look && this.swing === 0 && this.rise === 0) return null
+    return hit
   }
 
   private onWheel = (e: WheelEvent): void => {
@@ -1141,8 +1170,18 @@ export class Instrument {
     if (this.held && gap <= PUSH_GAP_MS) return
     this.held = false
     if (step === 0) return
+    this.stay()
     const r = this.radius(this.seat)
     const rect = this.canvas.getBoundingClientRect()
+    // A new scroll in over another body turns to it, and the rest of that scroll is held.
+    const turn = step < 0 && gap > PUSH_GAP_MS ? this.turnTarget(e.clientX, e.clientY, rect) : null
+    if (turn) {
+      this.push = null
+      this.dived = null
+      this.lookAt(turn)
+      this.held = true
+      return
+    }
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     // Scrolling on without moving from where the eye went down to the globe
@@ -1285,7 +1324,6 @@ export class Instrument {
     window.addEventListener('pointermove', this.onMove)
     window.addEventListener('pointerup', this.onUp)
     window.addEventListener('pointercancel', this.onUp)
-    c.addEventListener('dblclick', this.onDouble)
     c.addEventListener('wheel', this.onWheel, { passive: false })
   }
 
@@ -1295,8 +1333,8 @@ export class Instrument {
     window.removeEventListener('pointermove', this.onMove)
     window.removeEventListener('pointerup', this.onUp)
     window.removeEventListener('pointercancel', this.onUp)
-    c.removeEventListener('dblclick', this.onDouble)
     c.removeEventListener('wheel', this.onWheel)
+    this.stay()
   }
 
   private hover(x: number, y: number): void {
